@@ -8,12 +8,8 @@ import (
 )
 
 func handleConnection(conn net.Conn) {
-	buffer := make([]byte, 1024)
-	_, err := conn.Read(buffer)
-	exitOnError(err, "Error reading from connection")
-
-	parsed_req := strings.Split(string(buffer), "\r\n")
-	path := strings.Split(parsed_req[0], " ")[1]
+	parsed_request := readRequest(conn)
+	path := strings.Split(parsed_request[0], " ")[1]
 
 	switch {
 	case path == "/":
@@ -23,11 +19,19 @@ func handleConnection(conn net.Conn) {
 		handleEcho(conn, path)
 
 	case strings.HasPrefix(path, "/user-agent"):
-		handleUserAgent(conn, parsed_req)
+		handleUserAgent(conn, parsed_request)
 
 	default:
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
+}
+
+func readRequest(conn net.Conn) []string {
+	buffer := make([]byte, 1024)
+	_, err := conn.Read(buffer)
+	exitOnError(err, "Error reading from connection")
+
+	return strings.Split(string(buffer), "\r\n")
 }
 
 func handleEcho(conn net.Conn, path string) {
