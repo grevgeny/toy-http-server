@@ -7,6 +7,26 @@ import (
 	"strings"
 )
 
+func handleGet(conn net.Conn, request *Request) {
+	switch {
+
+	case request.Path == "/":
+		handleRoot(conn)
+
+	case strings.HasPrefix(request.Path, "/echo/"):
+		handleEcho(conn, request.Path)
+
+	case strings.HasPrefix(request.Path, "/user-agent"):
+		handleUserAgent(conn, request.Headers["User-Agent"])
+
+	case strings.HasPrefix(request.Path, "/files/"):
+		handleFileGet(conn, request.Path)
+
+	default:
+		handleUnknown(conn)
+	}
+}
+
 func handleRoot(conn net.Conn) {
 	writeResponseOK(conn, "", "")
 }
@@ -19,7 +39,7 @@ func handleUserAgent(conn net.Conn, userAgent string) {
 	writeResponseOK(conn, userAgent, "text/plain")
 }
 
-func handleFile(conn net.Conn, path string) {
+func handleFileGet(conn net.Conn, path string) {
 	filename := strings.TrimPrefix(path, "/files/")
 	file, err := os.ReadFile(directory + "/" + filename)
 
@@ -30,6 +50,10 @@ func handleFile(conn net.Conn, path string) {
 
 	response := string(file)
 	writeResponseOK(conn, response, "application/octet-stream")
+}
+
+func handleUnknown(conn net.Conn) {
+	writeResponseNotFound(conn)
 }
 
 func writeResponseOK(conn net.Conn, response string, content_type string) {

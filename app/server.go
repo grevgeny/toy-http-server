@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 )
 
 var directory string
@@ -49,20 +48,17 @@ func handleConnection(conn net.Conn) {
 		exitOnError(err, "Error reading request")
 	}
 
-	switch {
-	case request.Path == "/":
-		handleRoot(conn)
+	fmt.Println(request)
 
-	case strings.HasPrefix(request.Path, "/echo/"):
-		handleEcho(conn, request.Path)
+	switch request.Method {
+	case "GET":
+		handleGet(conn, request)
 
-	case strings.HasPrefix(request.Path, "/user-agent"):
-		handleUserAgent(conn, request.Headers["User-Agent"])
-
-	case strings.HasPrefix(request.Path, "/files/"):
-		handleFile(conn, request.Path)
+	case "POST":
+		handlePost(conn, request)
 
 	default:
-		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		conn.Write([]byte("HTTP/1.1 405 Method Not Allowed\r\n\r\n"))
 	}
+
 }
