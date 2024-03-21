@@ -48,8 +48,6 @@ func handleConnection(conn net.Conn) {
 		exitOnError(err, "Error reading request")
 	}
 
-	fmt.Println(request)
-
 	switch request.Method {
 	case "GET":
 		handleGet(conn, request)
