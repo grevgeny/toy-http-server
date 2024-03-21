@@ -1,13 +1,23 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 )
 
+var directory string
+
+func parseFlags() {
+	flag.StringVar(&directory, "directory", "", "directory containing source files")
+	flag.Parse()
+}
+
 func handleConnection(conn net.Conn) {
+	defer conn.Close()
+
 	parsed_request := readRequest(conn)
 	path := strings.Split(parsed_request[0], " ")[1]
 
@@ -20,6 +30,9 @@ func handleConnection(conn net.Conn) {
 
 	case strings.HasPrefix(path, "/user-agent"):
 		handleUserAgent(conn, parsed_request)
+
+	case strings.HasPrefix(path, "/files/"):
+		handleFile(conn, path)
 
 	default:
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
@@ -50,7 +63,7 @@ func handleUserAgent(conn net.Conn, parsed_req []string) {
 			continue
 		}
 
-		userAgent, _ := strings.CutPrefix(line, "User-Agent: ")
+		userAgent := strings.TrimPrefix(line, "User-Agent: ")
 
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
 		conn.Write([]byte("Content-Type: text/plain\r\n"))
@@ -60,6 +73,22 @@ func handleUserAgent(conn net.Conn, parsed_req []string) {
 
 		break
 	}
+}
+
+func handleFile(conn net.Conn, path string) {
+	filename := strings.TrimPrefix(path, "/files/")
+	file, err := os.ReadFile(directory + "/" + filename)
+
+	if err != nil {
+		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
+		return
+	}
+
+	conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+	conn.Write([]byte("Content-Type: application/octet-stream\r\n"))
+	conn.Write([]byte(fmt.Sprint("Content-Length: ", len(file), "\r\n")))
+	conn.Write([]byte("\r\n"))
+	conn.Write(file)
 }
 
 func exitOnError(err error, message string) {
@@ -72,6 +101,8 @@ func exitOnError(err error, message string) {
 }
 
 func main() {
+	parseFlags()
+
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	exitOnError(err, "Failed to bind to port 4221")
 
