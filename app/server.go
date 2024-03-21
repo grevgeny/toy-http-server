@@ -20,13 +20,7 @@ func handleConnection(conn net.Conn) {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
 
 	case strings.HasPrefix(path, "/echo/"):
-		content, _ := strings.CutPrefix(path, "/echo/")
-
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
-		conn.Write([]byte("Content-Type: text/plain\r\n"))
-		conn.Write([]byte(fmt.Sprint("Content-Length: ", len(content), "\r\n")))
-		conn.Write([]byte("\r\n"))
-		conn.Write([]byte(content))
+		handleEcho(conn, path)
 
 	case strings.HasPrefix(path, "/user-agent"):
 		for _, line := range parsed_req {
@@ -42,11 +36,23 @@ func handleConnection(conn net.Conn) {
 			conn.Write([]byte("\r\n"))
 			conn.Write([]byte(userAgent))
 
+			break
+
 		}
 
 	default:
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
+}
+
+func handleEcho(conn net.Conn, path string) {
+	content, _ := strings.CutPrefix(path, "/echo/")
+
+	conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+	conn.Write([]byte("Content-Type: text/plain\r\n"))
+	conn.Write([]byte(fmt.Sprint("Content-Length: ", len(content), "\r\n")))
+	conn.Write([]byte("\r\n"))
+	conn.Write([]byte(content))
 }
 
 func exitOnError(err error, message string) {
