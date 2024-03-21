@@ -18,10 +18,17 @@ func handleConnection(conn net.Conn) {
 	parsed_req := strings.Split(string(buffer), "\r\n")
 	path := strings.Split(parsed_req[0], " ")[1]
 
-	fmt.Println("Received request: ", path)
-
 	if path == "/" {
 		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	} else if strings.HasPrefix(path, "/echo/") {
+		content, _ := strings.CutPrefix(path, "/echo/")
+
+		conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
+		conn.Write([]byte("Content-Type: text/plain\r\n"))
+		conn.Write([]byte(fmt.Sprint("Content-Length: ", len(content), "\r\n")))
+		conn.Write([]byte("\r\n"))
+		conn.Write([]byte(content))
+
 	} else {
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
 	}
