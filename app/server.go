@@ -10,57 +10,6 @@ import (
 
 var directory string
 
-func readRequest(conn net.Conn) []string {
-	buffer := make([]byte, 1024)
-	_, err := conn.Read(buffer)
-	exitOnError(err, "Error reading from connection")
-
-	return strings.Split(string(buffer), "\r\n")
-}
-
-func handleEcho(conn net.Conn, path string) {
-	response, _ := strings.CutPrefix(path, "/echo/")
-	writeResponseOK(conn, response, "text/plain")
-}
-
-func handleUserAgent(conn net.Conn, parsed_req []string) {
-	for _, line := range parsed_req {
-		if !strings.HasPrefix(line, "User-Agent") {
-			continue
-		}
-
-		response := strings.TrimPrefix(line, "User-Agent: ")
-		writeResponseOK(conn, response, "text/plain")
-
-		return
-	}
-}
-
-func handleFile(conn net.Conn, path string) {
-	filename := strings.TrimPrefix(path, "/files/")
-	file, err := os.ReadFile(directory + "/" + filename)
-
-	if err != nil {
-		writeResponseNotFound(conn)
-		return
-	}
-
-	response := string(file)
-	writeResponseOK(conn, response, "application/octet-stream")
-}
-
-func writeResponseOK(conn net.Conn, response string, content_type string) {
-	conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
-	conn.Write([]byte("Content-Type: " + content_type + "\r\n"))
-	conn.Write([]byte(fmt.Sprint("Content-Length: ", len(response), "\r\n")))
-	conn.Write([]byte("\r\n"))
-	conn.Write([]byte(response))
-}
-
-func writeResponseNotFound(conn net.Conn) {
-	conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
-}
-
 func main() {
 	parseFlags()
 
@@ -95,21 +44,23 @@ func exitOnError(err error, message string) {
 func handleConnection(conn net.Conn) {
 	defer conn.Close()
 
-	request_components := readRequest(conn)
-	path := strings.Split(request_components[0], " ")[1]
+	request, err := readRequest(conn)
+	if err != nil {
+		exitOnError(err, "Error reading request")
+	}
 
 	switch {
-	case path == "/":
-		conn.Write([]byte("HTTP/1.1 200 OK\r\n\r\n"))
+	case request.Path == "/":
+		handleRoot(conn)
 
-	case strings.HasPrefix(path, "/echo/"):
-		handleEcho(conn, path)
+	case strings.HasPrefix(request.Path, "/echo/"):
+		handleEcho(conn, request.Path)
 
-	case strings.HasPrefix(path, "/user-agent"):
-		handleUserAgent(conn, request_components)
+	case strings.HasPrefix(request.Path, "/user-agent"):
+		handleUserAgent(conn, request.Headers["User-Agent"])
 
-	case strings.HasPrefix(path, "/files/"):
-		handleFile(conn, path)
+	case strings.HasPrefix(request.Path, "/files/"):
+		handleFile(conn, request.Path)
 
 	default:
 		conn.Write([]byte("HTTP/1.1 404 Not Found\r\n\r\n"))
