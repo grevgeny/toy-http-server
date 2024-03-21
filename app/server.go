@@ -10,10 +10,7 @@ import (
 func handleConnection(conn net.Conn) {
 	buffer := make([]byte, 1024)
 	_, err := conn.Read(buffer)
-	if err != nil {
-		fmt.Println("Error reading from connection: ", err.Error())
-		os.Exit(1)
-	}
+	exitOnError(err, "Error reading from connection")
 
 	parsed_req := strings.Split(string(buffer), "\r\n")
 	path := strings.Split(parsed_req[0], " ")[1]
@@ -35,19 +32,24 @@ func handleConnection(conn net.Conn) {
 
 }
 
+func exitOnError(err error, message string) {
+	if err == nil {
+		return
+	}
+
+	fmt.Printf("%s: %s", message, err.Error())
+	os.Exit(1)
+}
+
 func main() {
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
-	if err != nil {
-		fmt.Println("Failed to bind to port 4221")
-		os.Exit(1)
-	}
+	exitOnError(err, "Failed to bind to port 4221")
+
+	defer l.Close()
 
 	for {
 		conn, err := l.Accept()
-		if err != nil {
-			fmt.Println("Error accepting connection: ", err.Error())
-			os.Exit(1)
-		}
+		exitOnError(err, "Error accepting connection")
 
 		go handleConnection(conn)
 	}
