@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func WriteResponseOK(conn net.Conn, response string, content_type string) {
+func WriteResponseOK(conn net.Conn, response string, content_type string, encoding string) {
 	conn.Write([]byte("HTTP/1.1 200 OK\r\n"))
 
 	if response == "" {
@@ -14,6 +14,12 @@ func WriteResponseOK(conn net.Conn, response string, content_type string) {
 	}
 
 	conn.Write([]byte("Content-Type: " + content_type + "\r\n"))
+	if encoding != "" {
+		switch encoding {
+		case "gzip":
+			conn.Write([]byte("Content-Encoding: " + encoding + "\r\n"))
+		}
+	}
 	conn.Write([]byte(fmt.Sprint("Content-Length: ", len(response), "\r\n")))
 	conn.Write([]byte("\r\n"))
 	conn.Write([]byte(response))

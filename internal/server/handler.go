@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,9 +12,6 @@ type Handler struct {
 }
 
 func NewHandler(directory string) (*Handler, error) {
-	if directory == "" {
-		return nil, fmt.Errorf("directory is required")
-	}
 	return &Handler{directory: directory}, nil
 }
 
@@ -33,15 +29,16 @@ func (h *Handler) ServeHTTP(conn net.Conn, req *Request) {
 func (h *Handler) handleGet(conn net.Conn, req *Request) {
 	switch {
 	case req.Path == "/":
-		WriteResponseOK(conn, "", "")
+		WriteResponseOK(conn, "", "", "")
 
 	case strings.HasPrefix(req.Path, "/echo/"):
 		echoString := strings.TrimPrefix(req.Path, "/echo/")
-		WriteResponseOK(conn, echoString, "text/plain")
+		enc := req.Headers["Accept-Encoding"]
+		WriteResponseOK(conn, echoString, "text/plain", enc)
 
 	case strings.HasPrefix(req.Path, "/user-agent"):
 		userAgent := req.Headers["User-Agent"]
-		WriteResponseOK(conn, userAgent, "text/plain")
+		WriteResponseOK(conn, userAgent, "text/plain", "")
 
 	case strings.HasPrefix(req.Path, "/files/"):
 		filePath := filepath.Join(h.directory, strings.TrimPrefix(req.Path, "/files/"))
@@ -56,7 +53,7 @@ func (h *Handler) handleGet(conn net.Conn, req *Request) {
 			return
 		}
 
-		WriteResponseOK(conn, string(content), "application/octet-stream")
+		WriteResponseOK(conn, string(content), "application/octet-stream", "")
 
 	default:
 		WriteResponseNotFound(conn)
