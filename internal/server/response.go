@@ -1,6 +1,8 @@
 package server
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"net"
 	"strings"
@@ -21,6 +23,7 @@ func WriteResponseOK(conn net.Conn, response string, content_type string, encodi
 			switch enc {
 			case "gzip":
 				conn.Write([]byte("Content-Encoding: " + enc + "\r\n"))
+				response = compressResponse(response)
 				break
 			}
 		}
@@ -49,4 +52,12 @@ func WriteResponseNowAllowed(conn net.Conn) {
 
 func WriteResponseError(conn net.Conn) {
 	conn.Write([]byte("HTTP/1.1 500 Internal Server Error\r\n\r\n"))
+}
+
+func compressResponse(response string) string {
+	var buffer bytes.Buffer
+	gz := gzip.NewWriter(&buffer)
+	gz.Write([]byte(response))
+	gz.Close()
+	return buffer.String()
 }
