@@ -1,4 +1,4 @@
-package main
+package server
 
 import (
 	"bufio"
@@ -16,7 +16,7 @@ type Request struct {
 	Body    []byte
 }
 
-func readRequest(conn net.Conn) (*Request, error) {
+func ParseRequest(conn net.Conn) (*Request, error) {
 	reader := bufio.NewReader(conn)
 
 	// Read the request line
