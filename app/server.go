@@ -10,7 +10,8 @@ import (
 var directory string
 
 func main() {
-	parseFlags()
+	flag.StringVar(&directory, "directory", "", "directory containing files")
+	flag.Parse()
 
 	l, err := net.Listen("tcp", "0.0.0.0:4221")
 	exitOnError(err, "Failed to bind to port 4221")
@@ -24,20 +25,6 @@ func main() {
 		go handleConnection(conn)
 	}
 
-}
-
-func parseFlags() {
-	flag.StringVar(&directory, "directory", "", "directory containing files")
-	flag.Parse()
-}
-
-func exitOnError(err error, message string) {
-	if err == nil {
-		return
-	}
-
-	fmt.Printf("%s: %s", message, err.Error())
-	os.Exit(1)
 }
 
 func handleConnection(conn net.Conn) {
@@ -59,4 +46,13 @@ func handleConnection(conn net.Conn) {
 		conn.Write([]byte("HTTP/1.1 405 Method Not Allowed\r\n\r\n"))
 	}
 
+}
+
+func exitOnError(err error, message string) {
+	if err == nil {
+		return
+	}
+
+	fmt.Printf("%s: %s", message, err.Error())
+	os.Exit(1)
 }
