@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"net"
+	"strings"
 )
 
 func WriteResponseOK(conn net.Conn, response string, content_type string, encoding string) {
@@ -14,12 +15,17 @@ func WriteResponseOK(conn net.Conn, response string, content_type string, encodi
 	}
 
 	conn.Write([]byte("Content-Type: " + content_type + "\r\n"))
+
 	if encoding != "" {
-		switch encoding {
-		case "gzip":
-			conn.Write([]byte("Content-Encoding: " + encoding + "\r\n"))
+		for _, enc := range strings.Split(encoding, ", ") {
+			switch enc {
+			case "gzip":
+				conn.Write([]byte("Content-Encoding: " + enc + "\r\n"))
+				break
+			}
 		}
 	}
+
 	conn.Write([]byte(fmt.Sprint("Content-Length: ", len(response), "\r\n")))
 	conn.Write([]byte("\r\n"))
 	conn.Write([]byte(response))
